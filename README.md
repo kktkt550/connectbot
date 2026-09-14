@@ -2,12 +2,10 @@
 
 # ConnectBot
 
-ConnectBot is a [Secure Shell](https://en.wikipedia.org/wiki/Secure_Shell)
-client for Android that lets you connect to remote servers over a
-cryptographically secure link.
+ConnectBot 是一款面向 Android 的 [Secure Shell（SSH）](https://en.wikipedia.org/wiki/Secure_Shell)
+客户端，让你通过加密的安全连接接入远程服务器。
 
-
-## How to Install
+## 如何安装
 
 ### Google Play
 
@@ -16,69 +14,64 @@ cryptographically secure link.
   [1]: https://play.google.com/store/apps/details?id=org.connectbot
   [2]: https://developer.android.com/images/brand/en_generic_rgb_wo_60.png
 
-The easiest way to get ConnectBot is to [install from Google Play Store][1].
-If you have installed from a downloaded APK, Google Play Store can upgrade
-your installed version to the latest version. However, once it has upgraded
-*you can't install a version from the releases on GitHub anymore* (due to
-key rotation that upgrades the package signature to a more secure algorithm).
+最简单的方式就是从 [Google Play 商店安装][1]。
+如果你是通过下载的 APK 安装的，Google Play 商店可以把你已安装的版本升级到最新版。
+但一旦升级过，*你就不能再从 GitHub 的 releases 安装该应用了*
+（因为密钥轮换把包签名升级到了更安全的算法）。
 
+### 下载 release
 
-### Download a release
+ConnectBot 可以从 GitHub 的 [releases](
+https://github.com/connectbot/connectbot/releases) 下载。有两个版本：
 
-ConnectBot can be downloaded from [releases](
-https://github.com/connectbot/connectbot/releases) on GitHub. There are
-two versions:
+-  `google` —— 使用 Google Play Services 处理加密组件升级的版本
+-  `oss` —— 把加密组件直接打进 APK 里的版本，APK 体积会大几 MB
 
--  `google` &mdash; for a version that uses Google Play Services
-   to handle upgrading the cryptography provider
--  `oss` &mdash; includes the cryptography provider in the APK which
-   increases its size by a few megabytes.
+## 架构
 
-## Architecture
+### 主要依赖
 
-### Major dependencies
+ConnectBot 依赖另外两个库来提供功能：
+* [ConnectBot Terminal](https://github.com/connectbot/termlib) —— 应用使用的
+  终端模拟器，同样由 ConnectBot 作者 Kenny Root 创建并维护。
+* [ConnectBot 维护的 Trilead SSH-2 分支](https://github.com/connectbot/sshlib)
+  —— 基于 Christian Plattner 编写的 Trilead SSH-2 Java 库重度改造的分支。
 
-The ConnectBot app that uses two other libraries to provide its functionality:
-* [ConnectBot Terminal](https://github.com/connectbot/termlib) &mdash; the
-  terminal emulator used by the app is also created and maintained by the
-  ConnectBot author, Kenny Root.
-* [ConnectBot fork of Trilead SSH-2](https://github.com/connectbot/sshlib)
-  &mdash; a heavily modified fork of the original Trilead SSH-2 Java library
-  written by Christian Plattner.
-
-## Compiling
+## 编译
 
 ### Android Studio
 
-ConnectBot is most easily developed in [Android Studio](
-https://developer.android.com/studio/). You can import this project
-directly from its project creation screen by importing from the GitHub URL.
+在 [Android Studio](https://developer.android.com/studio/) 中开发 ConnectBot
+最方便。你可以在项目创建界面直接通过 GitHub URL 导入本项目。
 
-### Command line
+### 命令行
 
-To compile ConnectBot using `gradlew`, you must first specify where your
-Android SDK is via the `ANDROID_SDK_HOME` environment variable. Then
-you can invoke the Gradle wrapper to build:
+要使用 `gradlew` 编译 ConnectBot，必须先通过 `ANDROID_SDK_HOME` 环境变量
+指定 Android SDK 的位置。然后调用 Gradle wrapper 构建：
 
 ```sh
 ./gradlew build
 ```
 
-### Continuous Integration
+### 持续集成
 
-ConnectBot uses [GitHub Actions](https://github.com/connectbot/connectbot/actions)
-for continuous integration. The workflow is defined in
-`.github/workflows/ci.yml`.
+ConnectBot 使用 [GitHub Actions](https://github.com/connectbot/connectbot/actions)
+做持续集成，工作流定义在 `.github/workflows/ci.yml`。
 
-#### Running Workflows Locally with act
+#### 用 act 在本地运行工作流
 
-In general, simply running `./gradlew build` should cover all the
-checks run in the GitHub Actions continuous integration workflow, but you can
-run GitHub Actions workflows locally using [`nektos/act`](https://github.com/nektos/act).
-This requires Docker to be installed and running.
+通常直接运行 `./gradlew build` 就能覆盖 GitHub Actions 持续集成流程里的所有
+检查，但也可以用 [`nektos/act`](https://github.com/nektos/act) 在本地运行
+GitHub Actions 工作流。这需要安装并运行 Docker。
 
-To run the main CI workflow (`ci.yml`):
+运行主 CI 工作流（`ci.yml`）：
 
 ```sh
 act -W .github/workflows/ci.yml
 ```
+
+## MCP 服务器（AI 集成）
+
+ConnectBot 可作为 [MCP（Model Context Protocol）](MCP_README.md) 服务器运行，
+允许 AI 助手（如 AiCode）通过 MCP 协议访问 SSH 连接管理功能。详见
+[MCP_README.md](MCP_README.md)。
