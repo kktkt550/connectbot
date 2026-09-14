@@ -1,0 +1,112 @@
+name: Build & Publish Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "目标 GitHub Release 的 tag（存在则追加附件，不存在则新建）"
+        required: true
+        default: "v1.10.9-mcp"
+        type: string
+      flavor:
+        description: "构建 flavor（oss / google）"
+        required: true
+        default: "oss"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (with history)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          cache-read-only: ${{ github.ref_name != github.event.repository.default_branch }}
+
+      - name: Delete old Android SDK cmdline-tools
+        run: rm -rf "$ANDROID_HOME/cmdline-tools/latest"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'cmdline-tools;latest tools platform-tools'
+
+      - name: Generate throwaway release keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore connectbot-release.jks \
+            -alias connectbot \
+            -keyalg RSA -keysize 2048 -validity 36500 \
+            -storepass connectbot -keypass connectbot \
+            -dname "CN=ConnectBot Release, OU=Dev, O=KKT, C=US"
+          echo "keystore generated"
+
+      - name: Build signed release APK
+        run: |
+          FLAVOR=${{ inputs.flavor }}
+          ./gradlew ":app:assemble${FLAVOR^}Release" --no-daemon \
+            -PkeystoreFile="$PWD/connectbot-release.jks" \
+            -PkeystorePassword=connectbot \
+            -PkeystoreAlias=connectbot
+
+      - name: Locate APK
+        id: apk
+        run: |
+          FLAVOR=${{ inputs.flavor }}
+          APK="app/build/outputs/apk/${FLAVOR}/release/app-${FLAVOR}-release.apk"
+          ls -lh "$APK"
+          echo "apk=${APK}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: connectbot-release-apk
+          path: ${{ steps.apk.outputs.apk }}
+
+  release:
+    name: Attach APK to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: connectbot-release-apk
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ConnectBot ${inputs.flavor} Release APK
+          draft: false
+          generate_release_notes: false
+          body: |
+            ConnectBot ${inputs.flavor} 签名 release APK（由 GitHub Actions 构建）。
+
+            - applicationId：`org.connectbot`（oss）/ 相应 flavor
+            - 已做 R8 minify + 资源压缩
+            - 使用构建时生成的 keystore 签名，可直接安装到 Android 设备
+          files: "ConnectBot*release.apk"
