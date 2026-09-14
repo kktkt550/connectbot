@@ -100,13 +100,13 @@ jobs:
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: ${{ inputs.release_tag }}
-          name: ConnectBot ${inputs.flavor} Release APK
+          name: "ConnectBot ${{ inputs.flavor }} signed release APK"
           draft: false
           generate_release_notes: false
           body: |
-            ConnectBot ${inputs.flavor} 签名 release APK（由 GitHub Actions 构建）。
+            ConnectBot ${{ inputs.flavor }} 签名 release APK（由 GitHub Actions 构建）。
 
             - applicationId：`org.connectbot`（oss）/ 相应 flavor
             - 已做 R8 minify + 资源压缩
             - 使用构建时生成的 keystore 签名，可直接安装到 Android 设备
-          files: "ConnectBot*release.apk"
+          files: "**/app-${{ inputs.flavor }}-release.apk"
